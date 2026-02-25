@@ -7,8 +7,7 @@ type Driver = {
   full_name: string;
   phone: string;
   is_active: boolean;
-  subscription_status: string;
-  campus_area?: string | null;
+  subscription_status: "active" | "inactive" | string;
 };
 
 type RideRequest = {
@@ -18,30 +17,15 @@ type RideRequest = {
   pickup: string;
   dropoff: string;
   passengers: number;
-  status: string;
+  status: "new" | "assigned" | "completed" | "cancelled" | string;
   assigned_driver_id: string | null;
   created_at: string;
-
-  fare_amount: number | null;
+  fare_amount?: number | null;
 };
 
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = atob(base64);
-  const output = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; ++i) output[i] = raw.charCodeAt(i);
-  return output;
-}
-
-function pushSupported() {
-  return (
-    typeof window !== "undefined" &&
-    "serviceWorker" in navigator &&
-    "PushManager" in window &&
-    "Notification" in window
-  );
-}
+type DriversResponse = { drivers: Driver[]; error?: string };
+type RequestsResponse = { requests: RideRequest[]; error?: string };
+type OkResponse = { ok: true } | { error: string };
 
 export default function AdminPage() {
   const [adminKey, setAdminKey] = useState("");
@@ -52,11 +36,6 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  // Push UI state
-  const [canPush, setCanPush] = useState(false);
-  const [pushState, setPushState] = useState<"unknown" | "enabled" | "blocked" | "not_supported">("unknown");
-
-  // Load stored key
   useEffect(() => {
     const stored = localStorage.getItem("ADMIN_KEY");
     if (stored) setAdminKey(stored);
@@ -77,7 +56,8 @@ export default function AdminPage() {
   }
 
   async function loadAll() {
-    if (!adminKey.trim()) {
+    const k = adminKey.trim();
+    if (!k) {
       setMsg("Enter admin key first.");
       return;
     }
@@ -87,21 +67,21 @@ export default function AdminPage() {
 
     try {
       const [dRes, rRes] = await Promise.all([
-        fetch("/api/admin/drivers", { headers: { "x-admin-key": adminKey } }),
-        fetch("/api/admin/ride-requests", { headers: { "x-admin-key": adminKey } }),
+        fetch("/api/admin/drivers", { headers: { "x-admin-key": k } }),
+        fetch("/api/admin/ride-requests", { headers: { "x-admin-key": k } }),
       ]);
 
-      const dJson = await dRes.json().catch(() => ({}));
-      const rJson = await rRes.json().catch(() => ({}));
+      const dJson = (await dRes.json().catch(() => ({ drivers: [] }))) as DriversResponse;
+      const rJson = (await rRes.json().catch(() => ({ requests: [] }))) as RequestsResponse;
 
       if (!dRes.ok) {
-        setLoading(false);
         setMsg(dJson?.error || "Failed loading drivers");
+        setLoading(false);
         return;
       }
       if (!rRes.ok) {
-        setLoading(false);
         setMsg(rJson?.error || "Failed loading requests");
+        setLoading(false);
         return;
       }
 
@@ -109,8 +89,8 @@ export default function AdminPage() {
       setRequests(rJson.requests || []);
       setLoading(false);
     } catch {
-      setLoading(false);
       setMsg("Network error loading data.");
+      setLoading(false);
     }
   }
 
@@ -118,40 +98,48 @@ export default function AdminPage() {
     e.preventDefault();
     setMsg(null);
 
-    if (!adminKey.trim()) {
+    const k = adminKey.trim();
+    if (!k) {
       setMsg("Enter admin key first.");
       return;
     }
 
     const form = new FormData(e.currentTarget);
-    const payload = Object.fromEntries(form.entries());
+
+    const full_name = String(form.get("full_name") ?? "").trim();
+    const phone = String(form.get("phone") ?? "").trim();
+    const car_model = String(form.get("car_model") ?? "").trim();
+    const car_color = String(form.get("car_color") ?? "").trim();
+    const plate_number = String(form.get("plate_number") ?? "").trim();
+    const campus = String(form.get("campus") ?? "").trim();
+    const campus_area = String(form.get("campus_area") ?? "").trim();
+    const is_active = form.get("is_active") === "on";
+    const subscription_status = String(form.get("subscription_status") ?? "active");
 
     const res = await fetch("/api/admin/drivers", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-key": adminKey,
-      },
+      headers: { "Content-Type": "application/json", "x-admin-key": k },
       body: JSON.stringify({
-        full_name: payload.full_name,
-        phone: payload.phone,
-        car_model: payload.car_model,
-        car_color: payload.car_color,
-        plate_number: payload.plate_number,
-        campus: payload.campus,
-        campus_area: payload.campus_area, // ✅ IMPORTANT: send campus_area
-        is_active: payload.is_active === "on",
-        subscription_status: payload.subscription_status || "active",
+        full_name,
+        phone,
+        car_model: car_model || null,
+        car_color: car_color || null,
+        plate_number: plate_number || null,
+        campus: campus || null,
+        campus_area: campus_area || null,
+        is_active,
+        subscription_status,
       }),
     });
 
-    const data = await res.json().catch(() => ({}));
+    const data = (await res.json().catch(() => ({}))) as OkResponse;
+
     if (!res.ok) {
-      setMsg(data?.error || "Failed adding driver");
+      setMsg("error" in data ? data.error : "Failed adding driver");
       return;
     }
 
-    (e.target as HTMLFormElement).reset();
+    e.currentTarget.reset();
     setMsg("✅ Driver added");
     loadAll();
   }
@@ -161,16 +149,14 @@ export default function AdminPage() {
 
     const res = await fetch("/api/admin/assign", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-key": adminKey,
-      },
+      headers: { "Content-Type": "application/json", "x-admin-key": adminKey.trim() },
       body: JSON.stringify({ requestId, driverId }),
     });
 
-    const data = await res.json().catch(() => ({}));
+    const data = (await res.json().catch(() => ({}))) as OkResponse;
+
     if (!res.ok) {
-      setMsg(data?.error || "Failed assigning driver");
+      setMsg("error" in data ? data.error : "Failed assigning driver");
       return;
     }
 
@@ -178,21 +164,19 @@ export default function AdminPage() {
     loadAll();
   }
 
-  async function setStatus(requestId: string, status: string) {
+  async function setStatus(requestId: string, status: "assigned" | "completed" | "cancelled") {
     setMsg(null);
 
     const res = await fetch("/api/admin/request-status", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-key": adminKey,
-      },
+      headers: { "Content-Type": "application/json", "x-admin-key": adminKey.trim() },
       body: JSON.stringify({ requestId, status }),
     });
 
-    const data = await res.json().catch(() => ({}));
+    const data = (await res.json().catch(() => ({}))) as OkResponse;
+
     if (!res.ok) {
-      setMsg(data?.error || "Failed updating status");
+      setMsg("error" in data ? data.error : "Failed updating status");
       return;
     }
 
@@ -200,110 +184,66 @@ export default function AdminPage() {
     loadAll();
   }
 
-  // -------------------- PUSH: status check --------------------
-  useEffect(() => {
-    // only check in browser
-    const supported = pushSupported();
-    setCanPush(supported);
-
-    if (!supported) {
-      setPushState("not_supported");
-      return;
-    }
-
-    // If permission already blocked, show clearly
-    if (Notification.permission === "denied") {
-      setPushState("blocked");
-      return;
-    }
-
-    // We can’t know if subscribed without checking SW
-    (async () => {
-      try {
-        const reg = await navigator.serviceWorker.getRegistration();
-        if (!reg) {
-          setPushState("unknown");
-          return;
-        }
-        const sub = await reg.pushManager.getSubscription();
-        setPushState(sub ? "enabled" : "unknown");
-      } catch {
-        setPushState("unknown");
-      }
-    })();
-  }, []);
-
-  // ✅ PUSH: Enable push notifications for this admin device
   async function enablePush() {
     try {
       setMsg(null);
 
-      if (!pushSupported()) {
-        setMsg("Push not supported on this browser/device.");
-        setPushState("not_supported");
+      if (!("serviceWorker" in navigator)) {
+        setMsg("Push not supported on this device/browser.");
         return;
       }
 
-      if (Notification.permission === "denied") {
-        setMsg("Notifications are blocked for this site. Allow them in browser settings.");
-        setPushState("blocked");
+      const reg = await navigator.serviceWorker.register("/sw.js");
+
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setMsg("Notification permission not granted.");
         return;
       }
 
       const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!publicKey) {
-        setMsg("Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY in .env.local (restart server after adding).");
+        setMsg("Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY in environment.");
         return;
       }
 
-      // Register SW (wait until ready)
-      const reg = await navigator.serviceWorker.register("/sw.js");
-      await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
 
-      // Ask permission
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        setMsg("Notification permission not granted.");
-        if (permission === "denied") setPushState("blocked");
-        return;
-      }
-
-      // If already subscribed, reuse it
-      let sub = await reg.pushManager.getSubscription();
-      if (!sub) {
-        sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey),
-        });
-      }
-
-      // Save subscription in DB
       const saveRes = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscription: sub }),
+        body: JSON.stringify({ subscription: sub.toJSON() }),
       });
 
-      const saveJson = await saveRes.json().catch(() => ({}));
-      if (!saveRes.ok || saveJson?.ok === false) {
-        setMsg(saveJson?.error || "Failed saving push subscription.");
+      const saveJson = (await saveRes.json().catch(() => ({}))) as OkResponse;
+      if (!saveRes.ok) {
+        setMsg("error" in saveJson ? saveJson.error : "Failed saving push subscription.");
         return;
       }
 
-      setPushState("enabled");
-      setMsg("✅ Push notifications enabled on this device.");
-    } catch (e: any) {
-      setMsg(e?.message || "Failed to enable push notifications.");
+      setMsg("✅ Push enabled on this device.");
+    } catch {
+      setMsg("Failed to enable push.");
     }
   }
 
-  // When authed becomes true, load everything
+  function urlBase64ToUint8Array(base64String: string) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const raw = atob(base64);
+    const output = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; ++i) output[i] = raw.charCodeAt(i);
+    return output;
+  }
+
   useEffect(() => {
     if (authed) loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed]);
 
-  // -------------------- LOGIN VIEW --------------------
   if (!authed) {
     return (
       <main className="container" style={{ paddingTop: 30, paddingBottom: 40 }}>
@@ -343,27 +283,15 @@ export default function AdminPage() {
     );
   }
 
-  // -------------------- DASHBOARD VIEW --------------------
   return (
     <main className="container" style={{ paddingTop: 30, paddingBottom: 40 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <h1 style={{ marginTop: 0 }}>Admin Dashboard</h1>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {/* ✅ PUSH BUTTON (only show if supported) */}
-          {canPush && (
-            <button className="btnSecondary" type="button" onClick={enablePush} disabled={pushState === "enabled"}>
-              {pushState === "enabled" ? "Push Enabled" : "Enable Push"}
-            </button>
-          )}
+          <button className="btnSecondary" type="button" onClick={enablePush}>
+            Enable Push
+          </button>
 
           <button className="btnSecondary" type="button" disabled={loading} onClick={loadAll}>
             {loading ? "Loading..." : "Refresh"}
@@ -375,19 +303,9 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {pushState === "blocked" && (
-        <div className="card" style={{ marginTop: 12, borderColor: "rgba(245,179,1,0.45)" }}>
-          <div style={{ fontWeight: 900 }}>Notifications are blocked</div>
-          <div style={{ opacity: 0.8, marginTop: 6 }}>
-            Allow notifications for this site in your browser settings, then reload this page.
-          </div>
-        </div>
-      )}
-
       {msg && <p style={{ marginTop: 10 }}>{msg}</p>}
 
-      <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
-        {/* Add Driver */}
+      <section className="grid2" style={{ marginTop: 16 }}>
         <div className="card" style={{ boxShadow: "none" }}>
           <h3 style={{ marginTop: 0 }}>Add Driver (Manual)</h3>
 
@@ -426,7 +344,6 @@ export default function AdminPage() {
           </p>
         </div>
 
-        {/* Drivers list */}
         <div className="card" style={{ boxShadow: "none" }}>
           <h3 style={{ marginTop: 0 }}>Drivers</h3>
 
@@ -450,7 +367,6 @@ export default function AdminPage() {
                   <div>
                     <div style={{ fontWeight: 800 }}>{d.full_name}</div>
                     <div style={{ opacity: 0.75, fontSize: 13 }}>{d.phone}</div>
-                    {d.campus_area && <div style={{ opacity: 0.65, fontSize: 12 }}>Area: {d.campus_area}</div>}
                   </div>
                   <div style={{ textAlign: "right", fontSize: 13, opacity: 0.85 }}>
                     <div>{d.is_active ? "active" : "inactive"}</div>
@@ -467,7 +383,6 @@ export default function AdminPage() {
         </div>
       </section>
 
-      {/* Ride Requests */}
       <section style={{ marginTop: 16 }}>
         <div className="card" style={{ boxShadow: "none" }}>
           <h3 style={{ marginTop: 0 }}>Ride Requests</h3>
@@ -493,14 +408,14 @@ export default function AdminPage() {
                 >
                   <div style={{ flex: 1, minWidth: 260 }}>
                     <div style={{ fontWeight: 900 }}>
-                      {r.student_name}{" "}
-                      <span style={{ fontWeight: 500, opacity: 0.75 }}>({r.phone})</span>
+                      {r.student_name} <span style={{ fontWeight: 500, opacity: 0.75 }}>({r.phone})</span>
                     </div>
                     <div style={{ opacity: 0.9, marginTop: 4 }}>
                       {r.pickup} → {r.dropoff}
                     </div>
                     <div style={{ opacity: 0.75, fontSize: 13, marginTop: 6 }}>
-                      passengers: {r.passengers} • fare: <b>R{(r.fare_amount / 100).toFixed(2)}</b> • status: <b>{r.status}</b>
+                      passengers: {r.passengers} • status: <b>{r.status}</b>
+                      {typeof r.fare_amount === "number" ? <> • fare: <b>R{r.fare_amount.toFixed(2)}</b></> : null}
                     </div>
                   </div>
 
@@ -539,15 +454,6 @@ export default function AdminPage() {
           )}
         </div>
       </section>
-
-      {/* Mobile responsiveness */}
-      <style jsx>{`
-        @media (max-width: 920px) {
-          section[style*="grid-template-columns"] {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </main>
   );
 }

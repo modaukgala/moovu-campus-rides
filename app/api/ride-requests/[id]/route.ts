@@ -1,47 +1,70 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseServer";
 
-function jsonError(message: string, status = 400) {
-  return NextResponse.json({ ok: false, error: message }, { status });
-}
+type RideStatus = "new" | "assigned" | "completed" | "cancelled";
+
+type RideRequestRow = {
+  id: string;
+  student_name: string;
+  phone: string;
+  pickup: string;
+  dropoff: string;
+  passengers: number;
+  status: RideStatus;
+  assigned_driver_id: string | null;
+  created_at: string;
+  notes: string | null;
+  pickup_area: string | null;
+  fare_amount: number | null; // keep if you added this column
+};
+
+type DriverRow = {
+  id: string;
+  full_name: string;
+  phone: string;
+  car_model: string | null;
+  car_color: string | null;
+  plate_number: string | null;
+};
 
 export async function GET(
   _req: Request,
-  ctx: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = String(ctx?.params?.id || "").trim();
-    if (!id) return jsonError("Missing request id", 400);
+    const { id } = await ctx.params;
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
     const db = supabaseAdmin();
 
     // 1) Load request
     const { data: request, error: reqErr } = await db
       .from("ride_requests")
-      .select("*")
+      .select(
+        "id, student_name, phone, pickup, dropoff, passengers, status, assigned_driver_id, created_at, notes, pickup_area, fare_amount"
+      )
       .eq("id", id)
-      .single();
+      .single<RideRequestRow>();
 
     if (reqErr || !request) {
-      // Supabase can return error for .single() if no rows
-      return jsonError("Request not found", 404);
+      return NextResponse.json({ error: reqErr?.message || "Not found" }, { status: 404 });
     }
 
-    // 2) If assigned, load driver
-    let driver: any = null;
+    // 2) Load driver if assigned
+    let driver: DriverRow | null = null;
 
     if (request.assigned_driver_id) {
-      const { data: drv, error: drvErr } = await db
+      const { data: drv } = await db
         .from("drivers")
         .select("id, full_name, phone, car_model, car_color, plate_number")
         .eq("id", request.assigned_driver_id)
-        .single();
+        .single<DriverRow>();
 
-      if (!drvErr && drv) driver = drv;
+      if (drv) driver = drv;
     }
 
-    return NextResponse.json({ ok: true, request, driver }, { status: 200 });
+    return NextResponse.json({ request, driver });
   } catch {
-    return jsonError("Server error", 500);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

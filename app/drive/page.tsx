@@ -1,69 +1,30 @@
-"use client";
-
-import { useState } from "react";
-
 export default function DrivePage() {
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setMsg(null);
-    setLoading(true);
-
-    const form = new FormData(e.currentTarget);
-    const payload = Object.fromEntries(form.entries());
-
-    const res = await fetch("/api/driver-applications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        full_name: payload.full_name,
-        phone: payload.phone,
-        car_model: payload.car_model,
-        car_color: payload.car_color,
-        plate_number: payload.plate_number,
-        campus: payload.campus,
-      }),
-    });
-
-    const data = await res.json().catch(() => ({}));
-    setLoading(false);
-
-    if (!res.ok) {
-      setMsg(data?.error || "Failed to submit application.");
-      return;
-    }
-
-    (e.target as HTMLFormElement).reset();
-    setMsg("✅ Application submitted! Admin will review it.");
-  }
-
   return (
-    <main className="container" style={{ paddingTop: 30, paddingBottom: 40 }}>
-      <h1 style={{ marginTop: 0 }}>Apply to Drive</h1>
-      <p style={{ color: "#444" }}>Drivers apply here. Admin can also add drivers manually.</p>
+    <main className="container" style={{ paddingTop: 26, paddingBottom: 40 }}>
+      <div className="card" style={{ maxWidth: 720, margin: "0 auto" }}>
+        <h1 style={{ marginTop: 0 }}>Drive with Campus Ride</h1>
+        <p style={{ opacity: 0.78 }}>
+          Driver onboarding is currently handled by the admin. If you want to apply, contact the admin to get added.
+        </p>
 
-      <form className="card" onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
-        <label style={label}>Full Name<input name="full_name" required style={input} /></label>
-        <label style={label}>Phone<input name="phone" required style={input} /></label>
-        <label style={label}>Car Model<input name="car_model" style={input} /></label>
-        <label style={label}>Car Color<input name="car_color" style={input} /></label>
-        <label style={label}>Plate Number<input name="plate_number" style={input} /></label>
-        <label style={label}>Campus<input name="campus" style={input} placeholder="e.g. Soshanguve / Arcadia" /></label>
+        <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+          <div className="card" style={{ boxShadow: "none" }}>
+            <div style={{ fontWeight: 900 }}>Requirements</div>
+            <ul style={{ marginTop: 8, opacity: 0.85 }}>
+              <li>Valid driver’s license</li>
+              <li>Roadworthy vehicle</li>
+              <li>Safe driving record</li>
+            </ul>
+          </div>
 
-        <button className="btnPrimary" disabled={loading} type="submit">
-          {loading ? "Submitting..." : "Submit Request"}
-        </button>
-
-        {msg && <p style={{ marginBottom: 0 }}>{msg}</p>}
-      </form>
+          <div className="card" style={{ boxShadow: "none" }}>
+            <div style={{ fontWeight: 900 }}>Next step</div>
+            <div style={{ opacity: 0.85, marginTop: 8 }}>
+              Ask admin to add you under <b>Admin → Add Driver (Manual)</b>.
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
   );
 }
-
-const wrap: React.CSSProperties = { maxWidth: 760, margin: "40px auto", padding: 16, fontFamily: "system-ui" };
-const card: React.CSSProperties = { border: "1px solid #eee", borderRadius: 12, padding: 16, display: "grid", gap: 12 };
-const label: React.CSSProperties = { display: "grid", gap: 6, fontSize: 14 };
-const input: React.CSSProperties = { padding: 10, borderRadius: 10, border: "1px solid #ddd" };
-const button: React.CSSProperties = { padding: 12, borderRadius: 10, border: "none", background: "black", color: "white" };

@@ -1,82 +1,79 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseServer";
 import { sendAdminPush } from "@/lib/push";
-import { getFareCents, type Area } from "@/lib/pricing";
+import { getFareCents } from "@/lib/pricing";
 
-function jsonError(message: string, status = 400) {
-  return NextResponse.json({ ok: false, error: message }, { status });
-}
+type CreateRideRequestBody = {
+  student_name: string;
+  student_number?: string | null;
+  phone: string;
+  pickup: string;
+  dropoff: string;
+  pickup_area?: string | null;
+  passengers?: number;
+  notes?: string | null;
+};
 
-function clampPassengers(v: any) {
-  const n = Number(v || 1);
-  if (!Number.isFinite(n)) return 1;
-  return Math.max(1, Math.min(3, Math.round(n)));
+function isNonEmptyString(v: unknown): v is string {
+  return typeof v === "string" && v.trim().length > 0;
 }
 
 export async function POST(req: Request) {
-  let body: any = null;
   try {
-    body = await req.json();
-  } catch {
-    return jsonError("Invalid JSON body", 400);
-  }
+    const body = (await req.json().catch(() => null)) as Partial<CreateRideRequestBody> | null;
 
-  try {
-    const student_name = String(body?.student_name || "").trim();
-    const phone = String(body?.phone || "").trim();
+    if (!body) return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
 
-    const pickup_area = String(body?.pickup_area || "").trim() as Area;
-    const dropoff_area = String(body?.dropoff_area || "").trim() as Area;
-
-    if (!student_name) return jsonError("Missing field: student_name", 400);
-    if (!phone) return jsonError("Missing field: phone", 400);
-    if (!pickup_area) return jsonError("Missing field: pickup_area", 400);
-    if (!dropoff_area) return jsonError("Missing field: dropoff_area", 400);
-
-    const fareCents = getFareCents(pickup_area, dropoff_area);
-    if (fareCents === null) {
-      return jsonError("This route has no fixed price yet.", 400);
+    const required: (keyof CreateRideRequestBody)[] = ["student_name", "phone", "pickup", "dropoff"];
+    for (const k of required) {
+      const value = body[k];
+      if (!isNonEmptyString(value)) {
+        return NextResponse.json({ error: `Missing field: ${String(k)}` }, { status: 400 });
+      }
     }
 
-    const db = supabaseAdmin();
+    const passengers = Number(body.passengers ?? 1);
+    const safePassengers = Number.isFinite(passengers) ? Math.min(Math.max(passengers, 1), 3) : 1;
 
+    // fare: optional (null if unknown)
+    const fareCents = getFareCents(String(body.pickup), String(body.dropoff));
+    const fare_amount = typeof fareCents === "number" ? fareCents / 100 : null;
+
+    const db = supabaseAdmin();
     const { data, error } = await db
       .from("ride_requests")
       .insert([
         {
-          student_name,
-          student_number: body?.student_number ? String(body.student_number).trim() : null,
-          phone,
-
-          pickup_area,
-          dropoff_area,
-
-          pickup: pickup_area,   // keep existing fields for display
-          dropoff: dropoff_area, // keep existing fields for display
-
-          passengers: clampPassengers(body?.passengers),
-          notes: body?.notes ? String(body.notes).trim() : null,
+          student_name: String(body.student_name).trim(),
+          student_number: body.student_number ? String(body.student_number).trim() : null,
+          phone: String(body.phone).trim(),
+          pickup: String(body.pickup).trim(),
+          dropoff: String(body.dropoff).trim(),
+          passengers: safePassengers,
+          notes: body.notes ? String(body.notes).trim() : null,
           status: "new",
-
-          fare_amount: fareCents,
+          pickup_area: body.pickup_area ? String(body.pickup_area).trim() : null,
+          fare_amount,
         },
       ])
       .select()
       .single();
 
-    if (error) return jsonError(error.message, 500);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    // Push notify admins (best-effort)
+    // push (non-blocking)
     try {
       await sendAdminPush({
         title: "New Ride Request",
-        body: `${data.pickup_area} → ${data.dropoff_area} • R${(data.fare_amount / 100).toFixed(2)}`,
+        body: `${data.pickup} → ${data.dropoff} • ${data.passengers} pax`,
         url: "/admin",
       });
-    } catch {}
+    } catch {
+      // ignore
+    }
 
-    return NextResponse.json({ ok: true, request: data }, { status: 200 });
+    return NextResponse.json({ ok: true, request: data });
   } catch {
-    return jsonError("Server error", 500);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

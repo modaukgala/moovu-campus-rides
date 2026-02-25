@@ -1,12 +1,22 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 export default function Home() {
   return (
     <main>
       <header className="container" style={{ paddingTop: 22, paddingBottom: 10 }}>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+          }}
+        >
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <div
+              aria-label="Campus Ride logo"
               style={{
                 width: 44,
                 height: 44,
@@ -15,14 +25,20 @@ export default function Home() {
                 placeItems: "center",
                 fontWeight: 900,
                 letterSpacing: 1,
+                color: "white",
                 background: "linear-gradient(135deg, var(--tut-blue), var(--tut-red))",
+                boxShadow: "0 16px 30px rgba(0,0,0,0.25)",
+                userSelect: "none",
               }}
             >
-             
+              CR
             </div>
+
             <div>
-              <div style={{ fontSize: 16, fontWeight: 900 }}>MOOVU CAMPUS RIDES</div>
-              <div style={{ fontSize: 13, opacity: 0.75 }}>  Safe • Fast • Trusted</div>
+              <div style={{ fontSize: 16, fontWeight: 900, letterSpacing: 0.2 }}>
+                MOOVU CAMPUS RIDES
+              </div>
+              <div style={{ fontSize: 13, opacity: 0.75 }}>Safe • Fast • Trusted</div>
             </div>
           </div>
 
@@ -45,16 +61,31 @@ export default function Home() {
               width: "fit-content",
             }}
           >
-            <span style={{ width: 10, height: 10, borderRadius: 999, background: "var(--tut-red)" }} />
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 999,
+                background: "var(--tut-red)",
+              }}
+            />
             For University Students
           </div>
 
-          <h1 style={{ fontSize: 44, lineHeight: 1.05, margin: "14px 0 10px 0", letterSpacing: -1 }}>
-            Request a ride between campuses, malls & nearby areas. 
+          <h1
+            style={{
+              fontSize: 44,
+              lineHeight: 1.05,
+              margin: "14px 0 10px 0",
+              letterSpacing: -1,
+              maxWidth: 720,
+            }}
+          >
+            Request a ride between campuses, malls & nearby areas.
           </h1>
 
           <p style={{ fontSize: 16, opacity: 0.82, maxWidth: 620, lineHeight: 1.55 }}>
-            Request. Get A Ride.
+            Quick requests. Fixed pricing. Track your ride status in real-time.
           </p>
 
           <div style={{ display: "flex", gap: 12, marginTop: 18, flexWrap: "wrap" }}>
@@ -64,7 +95,7 @@ export default function Home() {
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-            {["Student-focused", "Clear Pickup Points", "Fixed-Pricing"].map((t) => (
+            {["Student-focused", "Clear Pickup Points", "Fixed Pricing"].map((t) => (
               <div
                 key={t}
                 style={{
@@ -86,17 +117,29 @@ export default function Home() {
           <div className="card">
             <div style={{ fontWeight: 900, marginBottom: 10 }}>Live Example</div>
             <div style={{ height: 1, background: "rgba(255,255,255,0.14)", margin: "10px 0 12px 0" }} />
+
             <Row k="Pickup" v="TUT North Campus" />
             <Row k="Drop-off" v="Soshanguve Crossing" />
-            <Row k="Status" v={<span style={statusPill}>Assigned</span>} />
-            <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 14, textAlign: "center", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.14)", fontWeight: 900 }}>
+            <Row k="Status" v={<span style={statusPill}>ASSIGNED</span>} />
+
+            <div
+              style={{
+                marginTop: 12,
+                padding: "12px 14px",
+                borderRadius: 14,
+                textAlign: "center",
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.14)",
+                fontWeight: 900,
+              }}
+            >
               Driver on the way
             </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <MiniStat top="1–5 min" bottom="Typical assignment time" />
-            <MiniStat top="6am-10pm" bottom="Requests accepted" />
+            <MiniStat top="06:00–22:00" bottom="Requests accepted" />
             <MiniStat top="Safer" bottom="Student-friendly network" />
             <MiniStat top="Simple" bottom="One-click request" />
           </div>
@@ -105,10 +148,11 @@ export default function Home() {
 
       <section className="container" style={{ paddingBottom: 34 }}>
         <h2 style={{ fontSize: 22, margin: "12px 0 14px 0" }}>How it works</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-          <Step n="1" title="Request" text="Enter Pickup, Destination, Passengers and Notes." />
-          <Step n="2" title="Price" text="Get Fixed Price Calculated For You" />
-          <Step n="3" title="Ride" text="Pay The Driver Cash/Transfer After The Trip" />
+
+        <div className="howGrid">
+          <Step n="1" title="Request" text="Choose pickup & destination, passengers, and notes." />
+          <Step n="2" title="Price" text="A fixed one-way price is calculated instantly." />
+          <Step n="3" title="Ride" text="Pay the driver cash/transfer after the trip." />
         </div>
 
         {/* Apply to Drive at the bottom */}
@@ -125,16 +169,30 @@ export default function Home() {
         <div style={{ opacity: 0.65, fontSize: 13, marginTop: 16 }}>
           Admin access is private (not shown publicly).
         </div>
+
+        <style>{`
+          .howGrid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+          }
+
+          @media (max-width: 920px) {
+            .howGrid {
+              grid-template-columns: 1fr;
+            }
+          }
+        `}</style>
       </section>
     </main>
   );
 }
 
-function Row({ k, v }: { k: string; v: any }) {
+function Row({ k, v }: { k: string; v: ReactNode }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 14 }}>
       <span style={{ opacity: 0.7 }}>{k}</span>
-      <span style={{ fontWeight: 800 }}>{v}</span>
+      <span style={{ fontWeight: 800, textAlign: "right" }}>{v}</span>
     </div>
   );
 }
@@ -175,9 +233,9 @@ function Step({ n, title, text }: { n: string; title: string; text: string }) {
 const statusPill: React.CSSProperties = {
   padding: "4px 10px",
   borderRadius: 999,
-  background: "rgba(227,28,61,0.18)",
-  border: "1px solid rgba(227,28,61,0.35)",
-  color: "rgba(255,220,228,0.95)",
+  background: "rgba(245,179,1,0.14)",
+  border: "1px solid rgba(245,179,1,0.45)",
+  color: "rgba(255,245,220,0.95)",
   fontWeight: 900,
   fontSize: 12,
 };

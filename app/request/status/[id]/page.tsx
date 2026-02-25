@@ -160,7 +160,7 @@ export default function RequestStatusPage({ params }: { params: { id: string } }
             <InfoRow label="Pickup" value={request.pickup} />
             <InfoRow label="Drop-off" value={request.dropoff} />
             <InfoRow label="Passengers" value={String(request.passengers)} />
-            <InfoRow label="Fare" value={`R${(request.fare_amount / 100).toFixed(2)}`}/>
+            <InfoRow label="Fare" value={`R${(request.fare_amount).toFixed(2)}`}/>
             <InfoRow label="Student" value={`${request.student_name} (${request.phone})`} />
           </div>
 
