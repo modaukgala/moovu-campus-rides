@@ -1,53 +1,46 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import Image from "next/image";
 
 export default function Home() {
   return (
     <main>
-      <header className="container" style={{ paddingTop: 22, paddingBottom: 10 }}>
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <div
-              aria-label="Campus Ride logo"
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 14,
-                display: "grid",
-                placeItems: "center",
-                fontWeight: 900,
-                letterSpacing: 1,
-                color: "white",
-                background: "linear-gradient(135deg, var(--tut-blue), var(--tut-red))",
-                boxShadow: "0 16px 30px rgba(0,0,0,0.25)",
-                userSelect: "none",
-              }}
-            >
-              CR
-            </div>
+      {/* No top bar/header anymore */}
 
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 900, letterSpacing: 0.2 }}>
+      <section className="container grid2" style={{ paddingTop: 28, paddingBottom: 18 }}>
+        <div style={{ padding: "10px 0" }}>
+          {/* LOGO + TITLE (replaces CR block) */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              textAlign: "center",
+              marginBottom: 18,
+            }}
+          >
+            <Image
+              src="/Moovu-Logo-White.jpg"
+              alt="MOOVU"
+              width={320}
+              height={160}
+              priority
+              style={{
+                width: "220px",
+                height: "auto",
+                objectFit: "contain",
+                filter:
+                  "drop-shadow(0 10px 26px rgba(0,0,0,0.55)) drop-shadow(0 0 18px rgba(227,28,61,0.18))",
+              }}
+            />
+
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 40, fontWeight: 950, letterSpacing: 0.6 }}>
                 MOOVU CAMPUS RIDES
               </div>
-              <div style={{ fontSize: 13, opacity: 0.75 }}>Safe • Fast • Trusted</div>
+              <div style={{ fontSize: 20, opacity: 0.75 }}>Safe • Fast • Trusted</div>
             </div>
           </div>
 
-          {/* No Admin link here intentionally */}
-        </div>
-      </header>
-
-      <section className="container grid2" style={{ paddingTop: 10, paddingBottom: 18 }}>
-        <div style={{ padding: "10px 0" }}>
           <div
             style={{
               display: "inline-flex",
@@ -61,26 +54,11 @@ export default function Home() {
               width: "fit-content",
             }}
           >
-            <span
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: 999,
-                background: "var(--tut-red)",
-              }}
-            />
-            For University Students
+            <span style={{ width: 10, height: 10, borderRadius: 999, background: "var(--tut-red)" }} />
+            FOR UNIVERSITY STUDENTS
           </div>
 
-          <h1
-            style={{
-              fontSize: 44,
-              lineHeight: 1.05,
-              margin: "14px 0 10px 0",
-              letterSpacing: -1,
-              maxWidth: 720,
-            }}
-          >
+          <h1 style={{ fontSize: 44, lineHeight: 1.05, margin: "14px 0 10px 0", letterSpacing: -1 }}>
             Request a ride between campuses, malls & nearby areas.
           </h1>
 
@@ -90,12 +68,12 @@ export default function Home() {
 
           <div style={{ display: "flex", gap: 12, marginTop: 18, flexWrap: "wrap" }}>
             <Link href="/request" className="btnPrimary">
-              Request a Ride
+              REQUEST A RIDE
             </Link>
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-            {["Student-focused", "Clear Pickup Points", "Fixed Pricing"].map((t) => (
+            {["Student-focused", "Clear Pickup Points", "Fixed-Pricing", "Reliable"].map((t) => (
               <div
                 key={t}
                 style={{
@@ -117,11 +95,9 @@ export default function Home() {
           <div className="card">
             <div style={{ fontWeight: 900, marginBottom: 10 }}>Live Example</div>
             <div style={{ height: 1, background: "rgba(255,255,255,0.14)", margin: "10px 0 12px 0" }} />
-
             <Row k="Pickup" v="TUT North Campus" />
             <Row k="Drop-off" v="Soshanguve Crossing" />
-            <Row k="Status" v={<span style={statusPill}>ASSIGNED</span>} />
-
+            <Row k="Status" v={<span style={statusPill}>Assigned</span>} />
             <div
               style={{
                 marginTop: 12,
@@ -138,24 +114,22 @@ export default function Home() {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <MiniStat top="1–5 min" bottom="Typical assignment time" />
-            <MiniStat top="06:00–22:00" bottom="Requests accepted" />
-            <MiniStat top="Safer" bottom="Student-friendly network" />
-            <MiniStat top="Simple" bottom="One-click request" />
+            <MiniStat top="1–5 min" bottom="Trip Assignment Time" />
+            <MiniStat top="06h00-22h00" bottom="Operating Hours" />
+            <MiniStat top="SAFE" bottom="Student-Friendly Network" />
+            <MiniStat top="SIMPLE" bottom="One-Click Request" />
           </div>
         </div>
       </section>
 
       <section className="container" style={{ paddingBottom: 34 }}>
         <h2 style={{ fontSize: 22, margin: "12px 0 14px 0" }}>How it works</h2>
-
-        <div className="howGrid">
-          <Step n="1" title="Request" text="Choose pickup & destination, passengers, and notes." />
-          <Step n="2" title="Price" text="A fixed one-way price is calculated instantly." />
-          <Step n="3" title="Ride" text="Pay the driver cash/transfer after the trip." />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+          <Step n="1" title="Request" text="Open MOOVU and Click on REQUEST A RIDE" />
+          <Step n="2" title="Price" text="Choose your Destination and See Your Fixed Price" />
+          <Step n="3" title="Ride" text="Ride Safe and Pay Cash/Transfer to the Driver" />
         </div>
 
-        {/* Apply to Drive at the bottom */}
         <div className="card" style={{ marginTop: 16, display: "grid", gap: 10 }}>
           <div style={{ fontWeight: 900, fontSize: 16 }}>Are you a driver?</div>
           <div style={{ opacity: 0.78, lineHeight: 1.5 }}>
@@ -165,34 +139,16 @@ export default function Home() {
             Apply to Drive
           </Link>
         </div>
-
-        <div style={{ opacity: 0.65, fontSize: 13, marginTop: 16 }}>
-          Admin access is private (not shown publicly).
-        </div>
-
-        <style>{`
-          .howGrid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-          }
-
-          @media (max-width: 920px) {
-            .howGrid {
-              grid-template-columns: 1fr;
-            }
-          }
-        `}</style>
       </section>
     </main>
   );
 }
 
-function Row({ k, v }: { k: string; v: ReactNode }) {
+function Row({ k, v }: { k: string; v: any }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 14 }}>
       <span style={{ opacity: 0.7 }}>{k}</span>
-      <span style={{ fontWeight: 800, textAlign: "right" }}>{v}</span>
+      <span style={{ fontWeight: 800 }}>{v}</span>
     </div>
   );
 }
@@ -233,9 +189,9 @@ function Step({ n, title, text }: { n: string; title: string; text: string }) {
 const statusPill: React.CSSProperties = {
   padding: "4px 10px",
   borderRadius: 999,
-  background: "rgba(245,179,1,0.14)",
-  border: "1px solid rgba(245,179,1,0.45)",
-  color: "rgba(255,245,220,0.95)",
+  background: "rgba(227,28,61,0.18)",
+  border: "1px solid rgba(227,28,61,0.35)",
+  color: "rgba(255,220,228,0.95)",
   fontWeight: 900,
   fontSize: 12,
 };
