@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseServer";
 import { sendAdminPush } from "@/lib/push";
-import { AREAS, type Area, getFareCents } from "@/lib/pricing";
+import { getFareCents, AREAS, type Area } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +13,6 @@ type CreateRideRequestBody = {
   pickup: string;
   dropoff: string;
   pickup_area?: string | null;
-  dropoff_area?: string | null; // optional if you have it in UI
   passengers?: number;
   notes?: string | null;
 };
@@ -31,9 +30,9 @@ function toArea(value: unknown): Area | null {
 export async function POST(req: Request) {
   try {
     const body = (await req.json().catch(() => null)) as Partial<CreateRideRequestBody> | null;
-
     if (!body) return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
 
+    // ✅ validate required fields
     const required: (keyof CreateRideRequestBody)[] = ["student_name", "phone", "pickup", "dropoff"];
     for (const k of required) {
       const value = body[k];
@@ -42,19 +41,23 @@ export async function POST(req: Request) {
       }
     }
 
-    // passengers clamp (1–3)
+    // ✅ promote to guaranteed strings (fixes Vercel strict build)
+    const student_name = body.student_name!.trim();
+    const phone = body.phone!.trim();
+    const pickup = body.pickup!.trim();
+    const dropoff = body.dropoff!.trim();
+
+    // ✅ passengers clamp (1–3)
     const passengers = Number(body.passengers ?? 1);
     const safePassengers = Number.isFinite(passengers) ? Math.min(Math.max(passengers, 1), 3) : 1;
 
-    // ✅ Convert incoming strings to Area union (or null if not in list)
-    const from = toArea(body.pickup_area ?? body.pickup);
-    const to = toArea(body.dropoff_area ?? body.dropoff);
+    // ✅ pricing (ONE-WAY)
+    const from = toArea(body.pickup_area ?? pickup);
+    const to = toArea(dropoff);
 
-    // ✅ Fare in cents (because pricing table uses cents)
     const fareCents = from && to ? getFareCents(from, to) : null;
 
-    // If your DB column fare_amount stores cents: keep this as fareCents
-    // If your DB stores rands, change to: const fare_amount = typeof fareCents === "number" ? fareCents / 100 : null;
+    // Store cents in DB (recommended). If your DB stores rands, change to: fareCents / 100
     const fare_amount = typeof fareCents === "number" ? fareCents : null;
 
     const db = supabaseAdmin();
@@ -63,14 +66,14 @@ export async function POST(req: Request) {
       .from("ride_requests")
       .insert([
         {
-          student_name: body.student_name.trim(),
+          student_name,
           student_number: body.student_number ?? null,
-          phone: body.phone.trim(),
-          pickup: body.pickup.trim(),
-          dropoff: body.dropoff.trim(),
+          phone,
+          pickup,
+          dropoff,
           pickup_area: from ?? body.pickup_area ?? null,
           passengers: safePassengers,
-          notes: body.notes ?? null,
+          notes: body.notes ? String(body.notes) : null,
           status: "new",
           assigned_driver_id: null,
           auto_assign_attempted_at: null,
@@ -84,16 +87,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
 
-    // 🔔 Optional: notify admin (don’t break request if push fails)
-    try {
-      await sendAdminPush({
+      // 🔔 notify admin (don't fail the request if push fails)
+      try {
+       await sendAdminPush({
         title: "New Ride Request",
-        body: `${data.pickup} → ${data.dropoff} (${data.passengers} pax)`,
-        url: `/admin`,
+        body: `${student_name}: ${pickup} → ${dropoff}`,
+        url: `/request/status/${data.id}`,
       });
-    } catch {
-      // ignore push errors
-    }
+    } catch {}
 
     return NextResponse.json({ ok: true, request: data });
   } catch {

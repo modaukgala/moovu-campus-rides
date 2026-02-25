@@ -9,8 +9,8 @@ export default function RequestRidePage() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const [pickupArea, setPickupArea] = useState<Area>("North");
-  const [dropoffArea, setDropoffArea] = useState<Area>("South");
+  const [pickupArea, setPickupArea] = useState<Area>("TUT North Campus");
+  const [dropoffArea, setDropoffArea] = useState<Area>("TUT South Campus");
 
   const fareCents = useMemo(() => getFareCents(pickupArea, dropoffArea), [pickupArea, dropoffArea]);
 
