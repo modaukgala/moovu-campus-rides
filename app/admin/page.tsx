@@ -415,7 +415,7 @@ export default function AdminPage() {
                     </div>
                     <div style={{ opacity: 0.75, fontSize: 13, marginTop: 6 }}>
                       passengers: {r.passengers} • status: <b>{r.status}</b>
-                      {typeof r.fare_amount === "number" ? <> • fare: <b>R{r.fare_amount.toFixed(2)}</b></> : null}
+                      {typeof r.fare_amount === "number" ? <> • fare: <b>R{(r.fare_amount / 100).toFixed(2)}</b></> : null}
                     </div>
                   </div>
 

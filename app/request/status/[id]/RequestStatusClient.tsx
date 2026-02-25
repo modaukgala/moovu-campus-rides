@@ -36,7 +36,11 @@ export default function RequestStatusClient({ id }: { id: string }) {
   const [driver, setDriver] = useState<Driver | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
+  // shows only for auto-assign issues
+  const [assignMsg, setAssignMsg] = useState<string | null>(null);
+
   const fetchingRef = useRef(false);
+  const autoAssignTriedRef = useRef(false);
 
   const isDone = useMemo(
     () => request?.status === "completed" || request?.status === "cancelled",
@@ -79,6 +83,7 @@ export default function RequestStatusClient({ id }: { id: string }) {
     }
   }
 
+  // Poll status
   useEffect(() => {
     fetchStatus();
 
@@ -90,25 +95,53 @@ export default function RequestStatusClient({ id }: { id: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestId, shouldPoll]);
 
+  // Trigger auto-assign once after 15s if still NEW
   useEffect(() => {
-  if (!requestId) return;
+    if (!requestId) return;
+    if (!request) return; // wait until first fetch loads request
+    if (autoAssignTriedRef.current) return;
 
-  const t = setTimeout(async () => {
-    try {
-      // Only try auto-assign if still not assigned yet
-      if (!request || request.status === "new") {
-        await fetch("/api/jobs/auto-assign", { method: "POST" });
+    // Only run if still NEW and not done
+    if (request.status !== "new" || isDone) return;
+
+    const t = setTimeout(async () => {
+      autoAssignTriedRef.current = true;
+      setAssignMsg("Trying to find a driver…");
+
+      try {
+        // Try POST first (recommended)
+        let res = await fetch("/api/jobs/auto-assign", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ requestId }),
+                  });
+
+        // If POST is not allowed, try GET
+        if (!res.ok) {
+          res = await fetch("/api/jobs/auto-assign", { method: "GET" });
+        }
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || data?.ok === false) {
+          setAssignMsg(
+            data?.error
+              ? `Auto-assign failed: ${data.error}`
+              : "Auto-assign failed. Admin needs to check the auto-assign API."
+          );
+        } else {
+          setAssignMsg("Auto-assign ran. Refreshing status…");
+        }
+
         await fetchStatus();
+      } catch {
+        setAssignMsg("Auto-assign request failed (network/server).");
       }
-    } catch {
-      // ignore
-    }
-  }, 30000);
+    }, 15000);
 
-  return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [requestId, request?.status]);
-
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestId, request?.status, isDone, request]);
 
   const statusText = request?.status || "new";
 
@@ -173,19 +206,24 @@ export default function RequestStatusClient({ id }: { id: string }) {
             <div style={{ height: 1, background: "rgba(255,255,255,0.14)", margin: "12px 0" }} />
 
             {request.pickup_area && <InfoRow label="Pickup Area" value={String(request.pickup_area)} />}
-            <InfoRow label="Pickup" value={request.pickup} />
-            <InfoRow label="Drop-off" value={request.dropoff} />
-            <InfoRow label="Passengers" value={String(request.passengers)} />
-
+            <InfoRow label="Drop-off Area" value={request.dropoff} />
+            <InfoRow label="Number Of Passengers" value={String(request.passengers)} />
             <InfoRow
               label="Fare"
-              value={
-                request.fare_amount == null ? "—" : `R${Number(request.fare_amount / 100).toFixed(2)}`
-              }
+              value={request.fare_amount == null ? "—" : `R${(request.fare_amount / 100).toFixed(2)}`}
             />
-
             <InfoRow label="Student" value={`${request.student_name} (${request.phone})`} />
           </div>
+
+          {/* Auto-assign message (debug) */}
+          {request.status === "new" && (
+            <div className="card" style={{ marginTop: 12 }}>
+              <div style={{ fontWeight: 900, fontSize: 16 }}>Auto-assign</div>
+              <div style={{ opacity: 0.78, marginTop: 6 }}>
+                {assignMsg || "Waiting… we will try assigning a driver shortly."}
+              </div>
+            </div>
+          )}
 
           {!driver && (request.status === "new" || request.status === "assigned") && (
             <div className="card" style={{ marginTop: 12 }}>
