@@ -90,6 +90,26 @@ export default function RequestStatusClient({ id }: { id: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestId, shouldPoll]);
 
+  useEffect(() => {
+  if (!requestId) return;
+
+  const t = setTimeout(async () => {
+    try {
+      // Only try auto-assign if still not assigned yet
+      if (!request || request.status === "new") {
+        await fetch("/api/jobs/auto-assign", { method: "POST" });
+        await fetchStatus();
+      }
+    } catch {
+      // ignore
+    }
+  }, 30000);
+
+  return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [requestId, request?.status]);
+
+
   const statusText = request?.status || "new";
 
   return (
@@ -160,7 +180,7 @@ export default function RequestStatusClient({ id }: { id: string }) {
             <InfoRow
               label="Fare"
               value={
-                request.fare_amount == null ? "—" : `R${Number(request.fare_amount).toFixed(2)}`
+                request.fare_amount == null ? "—" : `R${Number(request.fare_amount / 100).toFixed(2)}`
               }
             />
 
