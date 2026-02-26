@@ -37,10 +37,9 @@ export default function RequestStatusClient({ id }: { id: string }) {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   // shows only for auto-assign issues
-  const [assignMsg, setAssignMsg] = useState<string | null>(null);
+  const [assignMsg] = useState<string | null>(null);
 
   const fetchingRef = useRef(false);
-  const autoAssignTriedRef = useRef(false);
 
   const isDone = useMemo(
     () => request?.status === "completed" || request?.status === "cancelled",
@@ -94,54 +93,6 @@ export default function RequestStatusClient({ id }: { id: string }) {
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestId, shouldPoll]);
-
-  // Trigger auto-assign once after 15s if still NEW
-  useEffect(() => {
-    if (!requestId) return;
-    if (!request) return; // wait until first fetch loads request
-    if (autoAssignTriedRef.current) return;
-
-    // Only run if still NEW and not done
-    if (request.status !== "new" || isDone) return;
-
-    const t = setTimeout(async () => {
-      autoAssignTriedRef.current = true;
-      setAssignMsg("Trying to find a driver…");
-
-      try {
-        // Try POST first (recommended)
-        let res = await fetch("/api/jobs/auto-assign", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ requestId }),
-                  });
-
-        // If POST is not allowed, try GET
-        if (!res.ok) {
-          res = await fetch("/api/jobs/auto-assign", { method: "GET" });
-        }
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok || data?.ok === false) {
-          setAssignMsg(
-            data?.error
-              ? `Auto-assign failed: ${data.error}`
-              : "Auto-assign failed. Admin needs to check the auto-assign API."
-          );
-        } else {
-          setAssignMsg("Auto-assign ran. Refreshing status…");
-        }
-
-        await fetchStatus();
-      } catch {
-        setAssignMsg("Auto-assign request failed (network/server).");
-      }
-    }, 15000);
-
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestId, request?.status, isDone, request]);
 
   const statusText = request?.status || "new";
 
