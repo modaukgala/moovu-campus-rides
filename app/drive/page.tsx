@@ -1,28 +1,36 @@
+import Link from "next/link";
+
 export default function DrivePage() {
   return (
     <main className="container" style={{ paddingTop: 26, paddingBottom: 40 }}>
-      <div className="card" style={{ maxWidth: 720, margin: "0 auto" }}>
-        <h1 style={{ marginTop: 0 }}>Drive with Campus Ride</h1>
-        <p style={{ opacity: 0.78 }}>
-          Driver onboarding is currently handled by the admin. If you want to apply, contact the admin to get added.
-        </p>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+        <h1 style={{ margin: 0 }}>Drive with Campus Rides</h1>
+        <Link href="/" className="btnSecondary">
+          Home
+        </Link>
+      </div>
 
-        <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-          <div className="card" style={{ boxShadow: "none" }}>
-            <div style={{ fontWeight: 900 }}>Requirements</div>
-            <ul style={{ marginTop: 8, opacity: 0.85 }}>
-              <li>Valid driver’s license</li>
-              <li>Roadworthy vehicle</li>
-              <li>Safe driving record</li>
-            </ul>
+      <div style={{ display: "grid", gap: 14, marginTop: 14 }}>
+        <div className="card" style={{ boxShadow: "none" }}>
+          <div style={{ fontWeight: 900 }}>Requirements</div>
+          <ul style={{ marginTop: 8, opacity: 0.85 }}>
+            <li>Valid driver’s license</li>
+            <li>Roadworthy vehicle</li>
+            <li>Safe driving record</li>
+            <li>WhatsApp number (for contact)</li>
+          </ul>
+        </div>
+
+        {/* REPLACED: Next step box -> Button to application form */}
+        <div className="card" style={{ boxShadow: "none", display: "grid", gap: 10 }}>
+          <div style={{ fontWeight: 900 }}>Next step</div>
+          <div style={{ opacity: 0.8, lineHeight: 1.5 }}>
+            Fill in the application form. Your details will be reviewed by the admin before activation.
           </div>
 
-          <div className="card" style={{ boxShadow: "none" }}>
-            <div style={{ fontWeight: 900 }}>Next step</div>
-            <div style={{ opacity: 0.85, marginTop: 8 }}>
-              Ask admin to add you under <b>Admin → Add Driver (Manual)</b>.
-            </div>
-          </div>
+          <Link href="/drive/apply" className="btnPrimary" style={{ width: "fit-content" }}>
+            Fill In Application Form
+          </Link>
         </div>
       </div>
     </main>

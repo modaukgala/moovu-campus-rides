@@ -289,6 +289,10 @@ export default function AdminPage() {
         <h1 style={{ marginTop: 0 }}>Admin Dashboard</h1>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <a className="btnSecondary" href="/admin/driver-applications">
+            Driver Applications
+          </a>
+          
           <button className="btnSecondary" type="button" onClick={enablePush}>
             Enable Push
           </button>

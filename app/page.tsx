@@ -144,7 +144,7 @@ export default function Home() {
   );
 }
 
-function Row({ k, v }: { k: string; v: any }) {
+function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 14 }}>
       <span style={{ opacity: 0.7 }}>{k}</span>
