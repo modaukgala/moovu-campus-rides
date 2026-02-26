@@ -14,10 +14,13 @@ export default function DrivePage() {
         <div className="card" style={{ boxShadow: "none" }}>
           <div style={{ fontWeight: 900 }}>Requirements</div>
           <ul style={{ marginTop: 8, opacity: 0.85 }}>
+            <li>Latest Proof Of Registration</li>
             <li>Valid driver’s license</li>
             <li>Roadworthy vehicle</li>
-            <li>Safe driving record</li>
+            <li>A Smartphone With Stable Internet Connection</li>
+            <li>Waze/Google Maps</li>
             <li>WhatsApp number (for contact)</li>
+            <li>Safe driving record</li>
           </ul>
         </div>
 

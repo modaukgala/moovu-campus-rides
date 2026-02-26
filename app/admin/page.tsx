@@ -145,24 +145,44 @@ export default function AdminPage() {
   }
 
   async function assignDriver(requestId: string, driverId: string) {
-    setMsg(null);
+  setMsg(null);
 
-    const res = await fetch("/api/admin/assign", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-admin-key": adminKey.trim() },
-      body: JSON.stringify({ requestId, driverId }),
-    });
+  // Find request + driver locally for message
+  const r = requests.find((x) => x.id === requestId);
+  const d = drivers.find((x) => x.id === driverId);
 
-    const data = (await res.json().catch(() => ({}))) as OkResponse;
+  const res = await fetch("/api/admin/assign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-admin-key": adminKey.trim() },
+    body: JSON.stringify({ requestId, driverId }),
+  });
 
-    if (!res.ok) {
-      setMsg("error" in data ? data.error : "Failed assigning driver");
-      return;
-    }
+  const data = (await res.json().catch(() => ({}))) as OkResponse;
 
-    setMsg("✅ Driver assigned");
-    loadAll();
+  if (!res.ok) {
+    setMsg("error" in data ? data.error : "Failed assigning driver");
+    return;
   }
+
+  setMsg("✅ Driver assigned");
+  await loadAll();
+
+  // ✅ Auto-open WhatsApp to notify driver (Click-to-chat)
+  if (r && d?.phone) {
+    const driverPhone = String(d.phone).replace(/\D/g, "");
+    const msg = `🚗 New Moovu Trip Assigned
+Student: ${r.student_name}
+Student Phone: ${r.phone}
+Pickup: ${r.pickup}
+Dropoff: ${r.dropoff}
+Passengers: ${r.passengers}
+Request ID: ${r.id}
+
+Please confirm when you're on the way.`;
+
+    window.open(`https://wa.me/${driverPhone}?text=${encodeURIComponent(msg)}`, "_blank");
+  }
+}
 
   async function setStatus(requestId: string, status: "assigned" | "completed" | "cancelled") {
     setMsg(null);
@@ -451,6 +471,28 @@ export default function AdminPage() {
                         Cancel
                       </button>
                     </div>
+        
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                       <a
+                          className="btnSecondary"
+                          style={{ flex: 1, textAlign: "center" }}
+                          href={`tel:${r.phone}`}
+                        >
+                          Call Student
+                        </a>
+
+                        <a
+                          className="btnSecondary"
+                          style={{ flex: 1, textAlign: "center" }}
+                          target="_blank"
+                          rel="noreferrer"
+                          href={`https://wa.me/${String(r.phone).replace(/\D/g, "")}?text=${encodeURIComponent(
+                            `Hi ${r.student_name}, this is Moovu Campus Rides admin. We received your request:\nPickup: ${r.pickup}\nDropoff: ${r.dropoff}\nPassengers: ${r.passengers}\nRequest ID: ${r.id}`
+                          )}`}
+                        >
+                          WhatsApp Student
+                        </a>
+                      </div>
                   </div>
                 </div>
               ))}

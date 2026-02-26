@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseServer";
 import { sendAdminPush } from "@/lib/push";
 import { getFareCents, AREAS, type Area } from "@/lib/pricing";
+import { autoAssignPending } from "@/lib/autoAssign";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -86,7 +87,8 @@ export async function POST(req: Request) {
     if (error) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
-
+      await autoAssignPending({ minAgeMs: 0, onlyRequestId: data.id });
+      
       // 🔔 notify admin (don't fail the request if push fails)
       try {
        await sendAdminPush({
