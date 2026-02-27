@@ -85,7 +85,7 @@ export async function sendWhatsAppText(toPhoneRaw: string, message: string): Pro
   }
 }
 
-export function waLink(toPhoneRaw: string, message: string) {
+export function waLinkZA(toPhoneRaw: string, message: string) {
   const digits = String(toPhoneRaw || "").replace(/\D/g, "");
   const encoded = encodeURIComponent(message);
   return `https://wa.me/${digits}?text=${encoded}`;

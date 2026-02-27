@@ -1,6 +1,6 @@
 // lib/autoAssign.ts
 import { supabaseAdmin } from "@/lib/supabaseServer";
-import { sendWhatsAppText, waLink } from "@/lib/whatsapp";
+import { sendWhatsAppText, waLinkZA } from "@/lib/whatsapp";
 
 type DriverRow = {
   id: string;
@@ -115,7 +115,7 @@ export async function autoAssignPending({
         `Drop-off: ${dropoff}\n` +
         `Passengers: ${passengers}\n` +
         `Fare: ${fare}\n\n` +
-        `Tap to WhatsApp student: ${waLink(studentPhone, "Hi, I’m your MOOVU Campus Ride driver. I’ve been assigned your trip.")}\n` +
+        `Tap to WhatsApp student: ${waLinkZA(studentPhone, "Hi, I’m your MOOVU Campus Ride driver. I’ve been assigned your trip.")}\n` +
         `Tap to call student: tel:${studentPhone}`;
 
       await sendWhatsAppText(driverPhone, msg);
