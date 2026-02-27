@@ -124,11 +124,12 @@ export default function DriverApplyPage() {
               }}
             >
               <option value="">Select operating area…</option>
-              <option value="North">TUT North / Pretoria North</option>
+              <option value="North">TUT North Campus</option>
               <option value="South">TUT South Campus</option>
               <option value="Arcadia">TUT Arcadia Campus</option>
-              <option value="Soshanguve">Soshanguve Area</option>
-              <option value="Ga-Rankuwa">TUT Ga-Rankuwa</option>
+              <option value="Pretoria">TUT Pretoria Campus</option>
+              <option value="Accredited Residence">Accredited Residence in Soshanguve</option>
+              <option value="Ga-Rankuwa">TUT Ga-Rankuwa Campus</option>
             </select>
           </label>
 

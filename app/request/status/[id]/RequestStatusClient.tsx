@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { waLinkZA } from "@/lib/whatsapp";
 import Link from "next/link";
 
 type Driver = {
@@ -52,6 +53,9 @@ export default function RequestStatusClient({ id }: { id: string }) {
     if (request.status === "assigned" && driver) return false;
     return true;
   }, [request, isDone, driver]);
+
+  const whatsappHref =
+    driver ? waLinkZA(driver.phone, `Hi ${driver.full_name}, I'm the student who requested the ride.`) : null;
 
   async function fetchStatus() {
     if (fetchingRef.current) return;
@@ -204,10 +208,17 @@ export default function RequestStatusClient({ id }: { id: string }) {
                 <a className="btnPrimary" style={{ width: "fit-content" }} href={`tel:${driver.phone}`}>
                   Call Driver
                 </a>
+
                 <a
                   className="btnSecondary"
                   style={{ width: "fit-content" }}
-                  href={`https://wa.me/${driver.phone.replace(/\D/g, "")}`}
+                  href={whatsappHref || "#"}
+                  onClick={(e) => {
+                    if (!whatsappHref) {
+                      e.preventDefault();
+                      alert("Driver phone number is invalid. Please contact admin.");
+                    }
+                  }}
                   target="_blank"
                   rel="noreferrer"
                 >
