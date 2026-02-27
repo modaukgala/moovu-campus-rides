@@ -1,8 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/jobs/auto-assign?key=Moovu_12739",
-      "schedule": "*/1 * * * *"
-    }
-  ]
-}
+{}
